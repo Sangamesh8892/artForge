@@ -1,9 +1,9 @@
 import userModel from "../models/usermodel.js";
-import fetch from "node-fetch"; // make sure it's installed
-import { Buffer } from "buffer"; // for base64 conversion
+import fetch from "node-fetch";
+import { Buffer } from "buffer";
 
 export const generateImage = async (req, res) => {
-  const HF_API_URL = "https://router.huggingface.co/fal-ai/fal-ai/hidream-i1-dev";
+  const HF_API_URL = process.env.HF_API_URL;
   const HF_API_KEY = process.env.HF_API_KEY;
 
   try {
@@ -18,7 +18,7 @@ export const generateImage = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    if (user.creditBalance <= 0) {
+    if (user.creditBalance === 0) {
       return res.status(403).json({
         success: false,
         message: "Insufficient credits",
@@ -44,10 +44,25 @@ export const generateImage = async (req, res) => {
       return res.status(500).json({ success: false, message: "HF API error", details: errorText });
     }
 
-    // Get blob and convert to base64
-    const blob = await hfResponse.blob();
-    const arrayBuffer = await blob.arrayBuffer();
-    const base64Image = `data:image/png;base64,${Buffer.from(arrayBuffer).toString("base64")}`;
+    // First try to parse as JSON
+    let resultImage;
+    try {
+      const jsonResponse = await hfResponse.json();
+      // Extract image URL from the JSON response
+      // This extraction logic depends on the actual structure returned by the API
+      if (jsonResponse.images && jsonResponse.images[0] && jsonResponse.images[0].url) {
+        resultImage = jsonResponse.images[0].url;
+      } else if (jsonResponse.image) {
+        resultImage = jsonResponse.image;
+      } else {
+        throw new Error("Image data not found in API response");
+      }
+    } catch (jsonError) {
+      // If not JSON, try to get as blob
+      const blob = await hfResponse.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      resultImage = `data:image/png;base64,${Buffer.from(arrayBuffer).toString("base64")}`;
+    }
 
     // Deduct credit and save
     user.creditBalance -= 1;
@@ -57,7 +72,7 @@ export const generateImage = async (req, res) => {
       success: true,
       message: "Image generated successfully",
       creditBalance: user.creditBalance,
-      resultImage: base64Image,
+      resultImage
     });
   } catch (error) {
     console.error("Image generation failed:", error);
