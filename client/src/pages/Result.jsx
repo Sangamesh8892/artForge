@@ -15,16 +15,28 @@ const Result = () => {
   const onSubmitHandler = async (e) => {
     e.preventDefault()
     setLoadingImage(true)
-    if(input){
-      const image= await generateImage(input)
-      if(image){
-        setLoading(true)
-        setImage(image)
+    setError(null)
+    
+    if(input) {
+
+
+
+      try {
+        toast.info("Generating your image. This may take 10-60 seconds...");
+        const image = await generateImage(input)
+        if(image) {
+          setLoading(true)
+          setImage(image)
+          toast.success("Image generated successfully!");
+        } else {
+          setError("Failed to generate image")
+          toast.error("Failed to generate image")
+        }
+      } catch (error) {
+        setError(error.message || "Error generating image")
+        toast.error(error.message || "Error generating image")
+      } finally {
         setLoadingImage(false)
-    }else{
-        setLoadingImage(false)
-        setError("Failed to generate image")
-        toast.error("Failed to generate image")
       }
     }
   }

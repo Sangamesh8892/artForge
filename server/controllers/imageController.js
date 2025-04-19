@@ -1,16 +1,25 @@
 import userModel from "../models/usermodel.js";
 import fetch from "node-fetch";
-import { Buffer } from "buffer";
+import FormData from "form-data";
 
 export const generateImage = async (req, res) => {
-  const HF_API_URL = process.env.HF_API_URL;
-  const HF_API_KEY = process.env.HF_API_KEY;
+  // ClipDrop API endpoint
+  const CLIPDROP_API_URL = "https://clipdrop-api.co/text-to-image/v1";
+  const CLIPDROP_API_KEY = process.env.CLIPDROP_API_KEY;
 
   try {
     const { userId, prompt } = req.body;
 
     if (!userId || !prompt) {
       return res.status(400).json({ success: false, message: "Missing details" });
+    }
+
+    // Verify prompt length (ClipDrop has a 1000 character limit)
+    if (prompt.length > 1000) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Prompt too long. Maximum allowed is 1000 characters." 
+      });
     }
 
     const user = await userModel.findById(userId);
@@ -22,49 +31,43 @@ export const generateImage = async (req, res) => {
       return res.status(403).json({
         success: false,
         message: "Insufficient credits",
-        credits: user.creditBalance,
+        creditBalance: user.creditBalance,
+      });
+    }
+    
+    // Create form data to send to ClipDrop API
+    const formData = new FormData();
+    formData.append('prompt', prompt);
+
+    // Make the API request
+    const clipDropResponse = await fetch(CLIPDROP_API_URL, {
+      method: "POST",
+      headers: {
+        "x-api-key": CLIPDROP_API_KEY,
+        // No Content-Type header because form-data sets its own boundary
+      },
+      body: formData
+    });
+
+    // Check response status
+    if (!clipDropResponse.ok) {
+      const errorText = await clipDropResponse.text();
+      console.error("ClipDrop API Error:", errorText);
+      return res.status(clipDropResponse.status).json({ 
+        success: false, 
+        message: "ClipDrop API error", 
+        details: errorText 
       });
     }
 
-    // Hugging Face request
-    const hfResponse = await fetch(HF_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${HF_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        sync_mode: true,
-        prompt: prompt,
-      }),
-    });
+    // Get the image buffer
+    const imageBuffer = await clipDropResponse.buffer();
 
-    if (!hfResponse.ok) {
-      const errorText = await hfResponse.text();
-      return res.status(500).json({ success: false, message: "HF API error", details: errorText });
-    }
+    // Convert the image buffer to base64 
+    const base64Image = imageBuffer.toString('base64');
+    const resultImage = `data:image/png;base64,${base64Image}`;
 
-    // First try to parse as JSON
-    let resultImage;
-    try {
-      const jsonResponse = await hfResponse.json();
-      // Extract image URL from the JSON response
-      // This extraction logic depends on the actual structure returned by the API
-      if (jsonResponse.images && jsonResponse.images[0] && jsonResponse.images[0].url) {
-        resultImage = jsonResponse.images[0].url;
-      } else if (jsonResponse.image) {
-        resultImage = jsonResponse.image;
-      } else {
-        throw new Error("Image data not found in API response");
-      }
-    } catch (jsonError) {
-      // If not JSON, try to get as blob
-      const blob = await hfResponse.blob();
-      const arrayBuffer = await blob.arrayBuffer();
-      resultImage = `data:image/png;base64,${Buffer.from(arrayBuffer).toString("base64")}`;
-    }
-
-    // Deduct credit and save
+    // Deduct credit from user balance
     user.creditBalance -= 1;
     await user.save();
 
@@ -76,6 +79,9 @@ export const generateImage = async (req, res) => {
     });
   } catch (error) {
     console.error("Image generation failed:", error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ 
+      success: false, 
+      message: error.message || "Failed to generate image" 
+    });
   }
 };
