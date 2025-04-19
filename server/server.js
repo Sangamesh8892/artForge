@@ -11,7 +11,9 @@ const app = express();
 
 
 app.use(cors({
-    origin: ['https://art-forge.vercel.app', 'http://localhost:5173'],
+    origin: ['https://art-forge.vercel.app',      
+        'https://sangamesh-project-artforge.vercel.app', 
+        'http://localhost:5173'],
     credentials: true
   }));
 app.use(express.json());
