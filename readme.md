@@ -10,6 +10,7 @@ ArtForge is a full-stack web application that transforms textual descriptions in
 - **User Authentication**: Secure login and registration system
 - **Credit System**: Each account comes with 5 free credits to start
 - **Credit Management**: Use credits for each image generation
+- **Payment Integration**: Purchase credits via Razorpay payment gateway
 - **Responsive Design**: Works seamlessly on mobile, tablet, and desktop devices
 
 ## 🛠️ Tech Stack
@@ -22,6 +23,7 @@ ArtForge is a full-stack web application that transforms textual descriptions in
 - **React Router** - Navigation and routing
 - **React Toastify** - Toast notifications
 - **Vite** - Fast development and build tool
+- **Razorpay** - Payment gateway integration
 
 ### Backend
 - **Node.js** - JavaScript runtime
@@ -31,6 +33,7 @@ ArtForge is a full-stack web application that transforms textual descriptions in
 - **JWT** - Authentication via JSON Web Tokens
 - **bcrypt** - Password hashing
 - **ClipDrop API** - AI image generation service
+- **Razorpay API** - Payment processing
 
 ## 📋 Prerequisites
 
@@ -38,6 +41,7 @@ ArtForge is a full-stack web application that transforms textual descriptions in
 - npm or yarn
 - MongoDB account
 - ClipDrop API key
+- Razorpay account with API keys
 
 ## 🚀 Installation & Setup
 
@@ -56,6 +60,8 @@ npm install
 # MONGODB_URI=your_mongodb_connection_string
 # JWT_SECRET=your_jwt_secret
 # CLIPDROP_API_KEY=your_clipdrop_api_key
+# RAZORPAY_KEY_ID=your_razorpay_key_id
+# RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 # PORT=3000
 
 # Start the server
@@ -80,6 +86,8 @@ npm run dev
 - `MONGODB_URI`: MongoDB connection string
 - `JWT_SECRET`: Secret for JWT token generation
 - `CLIPDROP_API_KEY`: API key for ClipDrop's image generation service
+- `RAZORPAY_KEY_ID`: Razorpay API key ID
+- `RAZORPAY_KEY_SECRET`: Razorpay API key secret
 - `PORT`: Port for the Express server (default: 3000)
 
 ### Frontend (.env)
@@ -103,6 +111,10 @@ npm run dev
 ### Image Routes
 - `POST /api/image/generate-image` - Generate image from text prompt
 
+### Payment Routes
+- `POST /api/payment/order` - Create a Razorpay order
+- `POST /api/payment/verify` - Verify Razorpay payment
+
 ## 🔐 Authentication
 
 The application uses JWT (JSON Web Tokens) for authentication. Upon successful login, a token is generated and stored in localStorage. This token is sent with subsequent API requests to authenticate the user.
@@ -111,7 +123,7 @@ The application uses JWT (JSON Web Tokens) for authentication. Upon successful l
 
 - New users receive 5 free credits upon registration
 - Each image generation costs 1 credit
-- Additional credits can be purchased (integration pending)
+- Additional credits can be purchased via Razorpay payment gateway
 
 ## 🖼️ Image Generation
 
@@ -148,7 +160,6 @@ artforge/
 
 ## 🚧 Future Improvements
 
-- Payment integration for purchasing credits
 - User profile management
 - Image history and gallery
 - Advanced generation options (size, style, etc.)
