@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config({path :'./.env'});
+
 import express from 'express';
 import cors from 'cors';
 import connectDB from './config/mongodb.js';
@@ -19,7 +20,6 @@ app.use(cors({
 app.use(express.json());
 
 await connectDB();
-
 
 app.use('/api/user',userRouter);
 app.use('/api/image',Imagerouter);
